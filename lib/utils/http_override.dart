@@ -1,0 +1,12 @@
+// lib/utils/http_override.dart
+
+import 'dart:io';
+
+/// Geliştirme ortamında sertifika doğrulamasını atlamak için kullanılır.
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
+}
