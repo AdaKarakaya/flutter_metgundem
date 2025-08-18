@@ -14,9 +14,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/providers/news_provider.dart';
 import 'package:flutter_application_1/providers/auth_provider.dart';
 import 'package:flutter_application_1/providers/time_provider.dart';
+import 'package:flutter_application_1/view_models/news_view_model.dart';
 
-// _isSearching durumu için bir StateProvider tanımlayalım
-final isSearchingProvider = StateProvider<bool>((ref) => false);
 // _selectedCategory durumu için bir StateProvider tanımlayalım
 final selectedCategoryProvider = StateProvider<String>((ref) => 'Gündem');
 
@@ -29,51 +28,46 @@ const List<String> newsCategories = [
   'Sağlık'
 ];
 
-class NewsPage extends ConsumerStatefulWidget {
+class NewsPage extends ConsumerWidget {
   const NewsPage({super.key});
 
-  @override
-  ConsumerState<NewsPage> createState() => _NewsPageState();
-}
-
-class _NewsPageState extends ConsumerState<NewsPage> {
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _openSettingsPage() {
-    final user = FirebaseAuth.instance.currentUser;
+  void _openSettingsPage(BuildContext context, String? userName, String? photoUrl) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SettingsPage(
-          userName: user?.displayName ?? 'Misafir',
-          photoUrl: user?.photoURL,
+          userName: userName ?? 'Misafir',
+          photoUrl: photoUrl,
         ),
       ),
     );
   }
 
-  void _openAboutPage() {
+  void _openAboutPage(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AboutPage()),
     );
   }
 
-  void _toggleSearch() {
-    ref.read(isSearchingProvider.notifier).state = !ref.read(isSearchingProvider);
-    if (!ref.read(isSearchingProvider)) {
-      _searchController.clear();
-      ref.read(newsProvider.notifier).filterNewsByCategory(ref.read(selectedCategoryProvider));
-    }
+  void _openNewsDetailPage(BuildContext context, dynamic newsItem) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewsDetailPage(
+          title: newsItem['title'] ?? 'Başlık Yok',
+          description: newsItem['description'] ?? 'Açıklama Yok',
+          imageUrl: newsItem['urlToImage'],
+          content: newsItem['content'] ?? 'İçerik Yok',
+          sourceUrl: newsItem['url'],
+          sourceName: newsItem['source']['name'],
+          publishedAt: newsItem['publishedAt'],
+        ),
+      ),
+    );
   }
 
-  Widget _buildShimmerEffect() {
+  Widget _buildShimmerEffect(BuildContext context) {
     final cardColor = Theme.of(context).cardColor;
     return Shimmer.fromColors(
       baseColor: cardColor,
@@ -118,9 +112,10 @@ class _NewsPageState extends ConsumerState<NewsPage> {
     );
   }
 
-  Widget _buildDrawer(WidgetRef ref) {
+  Widget _buildDrawer(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(userNameProvider);
     final authService = ref.read(authServiceProvider);
+    final user = FirebaseAuth.instance.currentUser;
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -162,13 +157,12 @@ class _NewsPageState extends ConsumerState<NewsPage> {
               Navigator.pop(context);
             },
           ),
-          
           ListTile(
             leading: Icon(Icons.settings, color: Theme.of(context).textTheme.bodyLarge?.color),
             title: Text('Ayarlar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
             onTap: () {
               Navigator.pop(context);
-              _openSettingsPage();
+              _openSettingsPage(context, user?.displayName, user?.photoURL);
             },
           ),
           ListTile(
@@ -176,7 +170,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
             title: Text('Hakkımızda', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
             onTap: () {
               Navigator.pop(context);
-              _openAboutPage();
+              _openAboutPage(context);
             },
           ),
           ListTile(
@@ -204,40 +198,22 @@ class _NewsPageState extends ConsumerState<NewsPage> {
     );
   }
 
-  void _openNewsDetailPage(dynamic newsItem) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NewsDetailPage(
-          title: newsItem['title'] ?? 'Başlık Yok',
-          description: newsItem['description'] ?? 'Açıklama Yok',
-          imageUrl: newsItem['urlToImage'],
-          content: newsItem['content'] ?? 'İçerik Yok',
-          sourceUrl: newsItem['url'],
-          sourceName: newsItem['source']['name'],
-          publishedAt: newsItem['publishedAt'],
-        ),
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final newsViewModel = ref.watch(newsViewModelProvider);
     final asyncNewsData = ref.watch(newsProvider);
     final asyncFeaturedNewsData = ref.watch(featuredNewsProvider);
-    final isSearching = ref.watch(isSearchingProvider);
     final selectedCategory = ref.watch(selectedCategoryProvider);
-    
     final userName = ref.watch(userNameProvider);
     final currentTime = ref.watch(currentTimeProvider);
-    
+
     final displayTime = currentTime.when(
       data: (time) => time,
       loading: () => '...',
       error: (_, __) => '...',
     );
 
-    String _dailySummaryText = 'Günün özeti yükleniyor...';
+    String dailySummaryText = 'Günün özeti yükleniyor...';
 
     return asyncNewsData.when(
       loading: () => Scaffold(
@@ -249,7 +225,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
           categories: newsCategories,
           selectedCategory: selectedCategory,
         ),
-        body: _buildShimmerEffect(),
+        body: _buildShimmerEffect(context),
       ),
       error: (error, stackTrace) => Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -264,7 +240,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
       ),
       data: (newsItems) {
         final featuredNewsItems = asyncFeaturedNewsData.asData?.value ?? [];
-        
+
         final summaries = <String>[];
         for (var i = 0; i < newsItems.length && i < 10; i++) {
           final description = newsItems[i]['description'];
@@ -273,15 +249,14 @@ class _NewsPageState extends ConsumerState<NewsPage> {
           }
         }
         if (summaries.isEmpty) {
-          _dailySummaryText = 'Günün özeti bulunamadı.';
+          dailySummaryText = 'Günün özeti bulunamadı.';
         } else {
-          // Boşlukları temizlenmiş 'join' metodu
           String fullSummary = summaries.join(' • ');
           const int maxLength = 1000;
           if (fullSummary.length > maxLength) {
             fullSummary = '${fullSummary.substring(0, maxLength)}... (Devamı yok)';
           }
-          _dailySummaryText = fullSummary;
+          dailySummaryText = fullSummary;
         }
 
         return Scaffold(
@@ -296,7 +271,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
             categories: newsCategories,
             selectedCategory: selectedCategory,
           ),
-          drawer: _buildDrawer(ref),
+          drawer: _buildDrawer(context, ref),
           body: RefreshIndicator(
             onRefresh: () {
               return ref.read(newsProvider.notifier).refreshNews();
@@ -306,14 +281,14 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
-                      if (isSearching)
+                      if (newsViewModel.isSearching)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                           child: Row(
                             children: [
                               Expanded(
                                 child: TextField(
-                                  controller: _searchController,
+                                  controller: newsViewModel.searchController,
                                   decoration: InputDecoration(
                                     hintText: 'Haberlerde Ara...',
                                     border: OutlineInputBorder(
@@ -328,12 +303,17 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                                     ),
                                   ),
                                   style: Theme.of(context).textTheme.bodyMedium,
-                                  onSubmitted: (query) => ref.read(newsProvider.notifier).filterNewsByQuery(query),
+                                  onSubmitted: (query) {
+                                    ref.read(newsProvider.notifier).filterNewsByQuery(query);
+                                  },
                                 ),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.close),
-                                onPressed: _toggleSearch,
+                                onPressed: () {
+                                  newsViewModel.toggleSearch();
+                                  ref.read(newsProvider.notifier).filterNewsByCategory(selectedCategory);
+                                },
                               ),
                             ],
                           ),
@@ -353,7 +333,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                                     MaterialPageRoute(
                                       builder: (context) => DailySummaryPage(
                                         title: 'Günün Özeti',
-                                        summaryText: _dailySummaryText,
+                                        summaryText: dailySummaryText,
                                       ),
                                     ),
                                   );
@@ -368,7 +348,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                                     child: SizedBox(
                                       height: 20,
                                       child: Marquee(
-                                        text: _dailySummaryText,
+                                        text: dailySummaryText,
                                         style: Theme.of(context).textTheme.bodyMedium,
                                         scrollAxis: Axis.horizontal,
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +368,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                             const SizedBox(width: 8),
                             IconButton(
                               icon: const Icon(Icons.search),
-                              onPressed: _toggleSearch,
+                              onPressed: newsViewModel.toggleSearch,
                             ),
                           ],
                         ),
@@ -422,7 +402,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                           sourceUrl: item['url'],
                           sourceName: item['source']['name'],
                           publishedAt: item['publishedAt'],
-                          onTap: () => _openNewsDetailPage(item),
+                          onTap: () => _openNewsDetailPage(context, item),
                         );
                       },
                       childCount: newsItems.length,

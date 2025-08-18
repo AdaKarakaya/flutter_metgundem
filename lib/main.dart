@@ -1,22 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_application_1/firebase_options.dart';
 import 'package:flutter_application_1/pages/news_page.dart';
 import 'package:flutter_application_1/pages/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
 import 'package:flutter_application_1/utils/http_override.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod'u import et
-import 'package:flutter_application_1/providers/theme_provider.dart'; // Tema sağlayıcınızı import edin
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_application_1/providers/theme_provider.dart';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // flutter_dotenv paketini ekle
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform; // Platform tespiti için gerekli
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // .env dosyasını yükle
+  await dotenv.load(fileName: ".env");
+
+  // Platforma göre doğru FirebaseOptions'ı seç
+  FirebaseOptions? options;
+
+  if (kIsWeb) {
+    options = FirebaseOptions(
+      apiKey: dotenv.env['WEB_API_KEY']!,
+      appId: dotenv.env['WEB_APP_ID']!,
+      messagingSenderId: dotenv.env['WEB_MESSAGING_SENDER_ID']!,
+      projectId: dotenv.env['WEB_PROJECT_ID']!,
+      authDomain: dotenv.env['WEB_AUTH_DOMAIN'],
+      storageBucket: dotenv.env['WEB_STORAGE_BUCKET'],
+      measurementId: dotenv.env['WEB_MEASUREMENT_ID'],
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.android) {
+    options = FirebaseOptions(
+      apiKey: dotenv.env['ANDROID_API_KEY']!,
+      appId: dotenv.env['ANDROID_APP_ID']!,
+      messagingSenderId: dotenv.env['ANDROID_MESSAGING_SENDER_ID']!,
+      projectId: dotenv.env['ANDROID_PROJECT_ID']!,
+      storageBucket: dotenv.env['ANDROID_STORAGE_BUCKET'],
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+    options = FirebaseOptions(
+      apiKey: dotenv.env['IOS_API_KEY']!,
+      appId: dotenv.env['IOS_APP_ID']!,
+      messagingSenderId: dotenv.env['IOS_MESSAGING_SENDER_ID']!,
+      projectId: dotenv.env['IOS_PROJECT_ID']!,
+      storageBucket: dotenv.env['IOS_STORAGE_BUCKET'],
+      iosBundleId: dotenv.env['IOS_BUNDLE_ID'],
+      // Android client id sadece iOS için gerekli olabilir.
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.macOS) {
+    options = FirebaseOptions(
+      apiKey: dotenv.env['MACOS_API_KEY']!,
+      appId: dotenv.env['MACOS_APP_ID']!,
+      messagingSenderId: dotenv.env['MACOS_MESSAGING_SENDER_ID']!,
+      projectId: dotenv.env['MACOS_PROJECT_ID']!,
+      storageBucket: dotenv.env['MACOS_STORAGE_BUCKET'],
+      androidClientId: dotenv.env['MACOS_ANDROID_CLIENT_ID'],
+      iosBundleId: dotenv.env['MACOS_BUNDLE_ID'],
+    );
+  }
+
+  // Yalnızca geçerli bir platform için seçenekler varsa Firebase'i başlat
+  if (options != null) {
+    await Firebase.initializeApp(
+      options: options,
+    );
+  }
+
   // Uygulamayı ProviderScope ile sarın
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -90,7 +142,6 @@ class MyApp extends ConsumerWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            // NewsPage artık tema parametrelerini almıyor
             return const NewsPage();
           }
           return const LoginPage();
