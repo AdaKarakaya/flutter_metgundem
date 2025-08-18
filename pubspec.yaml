@@ -39,6 +39,7 @@ dependencies:
   card_swiper: ^3.0.1 # Bu satırı ekle
   flutter_tts: ^4.2.3
   marquee: ^2.3.0
+  flutter_riverpod: ^2.6.1
 
 
   # The following adds the Cupertino Icons font to your application.

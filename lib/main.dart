@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
 import 'package:flutter_application_1/utils/http_override.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod'u import et
+import 'package:flutter_application_1/providers/theme_provider.dart'; // Tema sağlayıcınızı import edin
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,29 +17,23 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  // Uygulamayı ProviderScope ile sarın
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatefulWidget {
+// StatefulWidget yerine ConsumerWidget kullanın
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // themeProvider'ı dinleyerek tema modunu alın
+    final themeMode = ref.watch(themeProvider);
 
-class _MyAppState extends State<MyApp> {
-  ThemeMode _themeMode = ThemeMode.system;
-
-  void _onThemeModeChanged(ThemeMode newThemeMode) {
-    setState(() {
-      _themeMode = newThemeMode;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Haber Uygulaması',
+      themeMode: themeMode, // Riverpod'dan gelen temayı kullan
+      debugShowCheckedModeBanner: false,
       // Açık tema için özelleştirmeler
       theme: ThemeData.light().copyWith(
         primaryColor: const Color(0xFF4A148C), // Koyu mor
@@ -87,8 +83,6 @@ class _MyAppState extends State<MyApp> {
           secondary: const Color(0xFFF06292), // Pembe vurgu rengi
         ),
       ),
-      themeMode: _themeMode,
-      debugShowCheckedModeBanner: false,
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
@@ -96,14 +90,8 @@ class _MyAppState extends State<MyApp> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            
-           
-
-            return NewsPage(
-              currentThemeMode: _themeMode,
-              onThemeModeChanged: _onThemeModeChanged,
-              
-            );
+            // NewsPage artık tema parametrelerini almıyor
+            return const NewsPage();
           }
           return const LoginPage();
         },
