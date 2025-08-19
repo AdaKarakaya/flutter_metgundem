@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/saved_news_page.dart';
+import 'package:flutter_application_1/pages/weather_page.dart';
 import 'package:flutter_application_1/widgets/custom_app_bar.dart';
 import 'package:flutter_application_1/widgets/featured_news_pager.dart';
 import 'package:flutter_application_1/widgets/news_card.dart';
@@ -16,6 +17,8 @@ import 'package:flutter_application_1/providers/auth_provider.dart';
 import 'package:flutter_application_1/providers/time_provider.dart';
 import 'package:flutter_application_1/view_models/news_view_model.dart';
 import 'package:flutter_application_1/pages/exchange_page.dart'; // Yeni eklenen sayfa
+import 'package:flutter_application_1/pages/user_profile_page.dart';
+import 'package:flutter_application_1/services/firestore_service.dart';
 
 // _selectedCategory durumu için bir StateProvider tanımlayalım
 final selectedCategoryProvider = StateProvider<String>((ref) => 'Gündem');
@@ -32,18 +35,6 @@ const List<String> newsCategories = [
 class NewsPage extends ConsumerWidget {
   const NewsPage({super.key});
 
-  void _openSettingsPage(BuildContext context, String? userName, String? photoUrl) {
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => SettingsPage(
-      userName: 'Kullanıcı Adınız', // Buraya gerçek kullanıcı adını yazın
-      photoUrl: 'Profil Fotoğrafı URL\'niz', // Buraya gerçek fotoğraf URL'sini yazın
-    ),
-  ),
-);
-  }
-
   void _openAboutPage(BuildContext context) {
     Navigator.push(
       context,
@@ -51,7 +42,14 @@ Navigator.push(
     );
   }
 
-  void _openNewsDetailPage(BuildContext context, dynamic newsItem) {
+  void _openNewsDetailPage(BuildContext context, dynamic newsItem) async {
+    print('NewsPage: _openNewsDetailPage fonksiyonu çağrıldı.');
+    final firestoreService = FirestoreService();
+
+    // SORUN ÇÖZÜMÜ: updateReadCount() yerine, haberin kategorisini de gönderen
+    // yeni updateReadStats() fonksiyonunu çağırdık.
+    await firestoreService.updateReadStats(newsItem['category'] ?? 'Genel');
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -66,6 +64,7 @@ Navigator.push(
         ),
       ),
     );
+    print('NewsPage: Haber detay sayfası açıldı.');
   }
 
   Widget _buildShimmerEffect(BuildContext context) {
@@ -116,7 +115,6 @@ Navigator.push(
   Widget _buildDrawer(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(userNameProvider);
     final authService = ref.read(authServiceProvider);
-    final user = FirebaseAuth.instance.currentUser;
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -159,6 +157,17 @@ Navigator.push(
             },
           ),
           ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Profilim'),
+            onTap: () {
+              Navigator.of(context).pop(); // Menüyü kapat
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UserProfilePage()),
+              );
+            },
+          ),
+          ListTile(
             leading: Icon(Icons.show_chart, color: Theme.of(context).textTheme.bodyLarge?.color),
             title: Text('Kurlar ve Kriptolar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
             onTap: () {
@@ -169,28 +178,39 @@ Navigator.push(
               );
             },
           ),
-ListTile(
-  leading: Icon(Icons.settings, color: Theme.of(context).textTheme.bodyLarge?.color),
-  title: Text('Ayarlar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-  onTap: () {
-    // Menüyü kapat
-    Navigator.pop(context);
+          ListTile(
+            leading: Icon(Icons.settings, color: Theme.of(context).textTheme.bodyLarge?.color),
+            title: Text('Ayarlar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+            onTap: () {
+              // Menüyü kapat
+              Navigator.pop(context);
 
-    // Kullanıcı verilerini Firebase'den alın
-    final user = FirebaseAuth.instance.currentUser;
-    
-    // Doğru parametrelerle SettingsPage'e yönlendirin
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SettingsPage(
-          userName: user?.displayName ?? 'Misafir Kullanıcı',
-          photoUrl: user?.photoURL,
-        ),
-      ),
-    );
-  },
-),
+              // Kullanıcı verilerini Firebase'den alın
+              final user = FirebaseAuth.instance.currentUser;
+
+              // Doğru parametrelerle SettingsPage'e yönlendirin
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsPage(
+                    userName: user?.displayName ?? 'Misafir Kullanıcı',
+                    photoUrl: user?.photoURL,
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.cloud, color: Theme.of(context).colorScheme.onSurface),
+            title: Text('Hava Durumu', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+            onTap: () {
+              Navigator.of(context).pop(); // Menüyü kapat
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WeatherPage()),
+              );
+            },
+          ),
           ListTile(
             leading: Icon(Icons.info_outline, color: Theme.of(context).textTheme.bodyLarge?.color),
             title: Text('Hakkımızda', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),

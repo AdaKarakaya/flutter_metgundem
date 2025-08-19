@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter_application_1/utils/http_override.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/providers/theme_provider.dart';
+import 'package:flutter_application_1/services/firestore_service.dart'; // Bu satırı ekledik
 
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // flutter_dotenv paketini ekle
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform; // Platform tespiti için gerekli
@@ -142,7 +143,21 @@ class MyApp extends ConsumerWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            return const NewsPage();
+            // Firestore dokümanını kontrol et ve gerekirse oluştur
+            return FutureBuilder(
+              future: FirestoreService().createUserDocument(),
+              builder: (context, futureSnapshot) {
+                if (futureSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (futureSnapshot.hasError) {
+                  // Hata oluşursa, yine de uygulamayı göster
+                  print("Firestore dokümanı oluşturulurken hata oluştu: ${futureSnapshot.error}");
+                  return const NewsPage();
+                }
+                return const NewsPage();
+              },
+            );
           }
           return const LoginPage();
         },

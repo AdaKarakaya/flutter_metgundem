@@ -9,6 +9,7 @@ class ExchangePage extends ConsumerStatefulWidget {
   const ExchangePage({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _ExchangePageState createState() => _ExchangePageState();
 }
 
@@ -69,6 +70,7 @@ class _ExchangePageState extends ConsumerState<ExchangePage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          // ignore: unused_result
           await ref.refresh(exchangeRateProvider.future);
           _filterRates(); // Yeniledikten sonra arama filtresini yeniden uygula
         },

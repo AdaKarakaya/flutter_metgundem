@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_1/pages/news_detail_page.dart';
 
 class NewsCard extends StatelessWidget {
   final String title;
@@ -26,7 +25,6 @@ class NewsCard extends StatelessWidget {
     super.key,
   });
 
-  // Tarih ve saati güvenilir bir şekilde formatlayan fonksiyon
   String _formatPublishedAt(String? dateString) {
     if (dateString == null) {
       return 'Tarih Yok';
@@ -36,7 +34,6 @@ class NewsCard extends StatelessWidget {
       final localDateTime = dateTimeUtc.toLocal();
       return DateFormat('dd MMMM yyyy, HH:mm', 'tr_TR').format(localDateTime);
     } catch (e) {
-      // Ayrıştırma başarısız olursa orijinal metni döndürürüz.
       return dateString;
     }
   }
@@ -51,92 +48,89 @@ class NewsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NewsDetailPage(
-                title: title,
-                description: description,
-                imageUrl: imageUrl,
-                content: content,
-                sourceUrl: sourceUrl,
-                sourceName: sourceName,
-                publishedAt: publishedAt,
-              ),
-            ),
-          );
-        },
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12.0),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Resim URL'si geçerli olduğunda resim yükleniyor
-              if (imageUrl != null && imageUrl!.isNotEmpty && imageUrl != '[Removed]' && !imageUrl!.contains('null'))
-                ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.network(
-                      imageUrl!,
-                      height: 200,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      // Hatalı resim yerine placeholder kullanıldı
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          'assets/images/placeholder.png',
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ]
-              else
-                // Resim URL'si yoksa veya geçersizse placeholder göster
-                ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.asset(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Resim bölümü
+            if (imageUrl != null && imageUrl!.isNotEmpty && imageUrl != '[Removed]' && !imageUrl!.contains('null'))
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12.0),
+                  topRight: Radius.circular(12.0),
+                ),
+                child: Image.network(
+                  imageUrl!,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset(
                       'assets/images/placeholder.png',
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurface,
+                    );
+                  },
+                ),
+              )
+            else
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12.0),
+                  topRight: Radius.circular(12.0),
+                ),
+                child: Image.asset(
+                  'assets/images/placeholder.png',
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(height: 8),
-              if (sourceName != null || publishedAt != null)
-                Text(
-                  '${sourceName ?? ''}${sourceName != null && publishedAt != null ? ' - ' : ''}${_formatPublishedAt(publishedAt)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+
+            // İçerik bölümü
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Haber Başlığı
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                ),
-              const SizedBox(height: 8),
-              if (description != null)
-                Text(
-                  description!,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-            ],
-          ),
+
+                  const SizedBox(height: 8),
+
+                  // Kaynak ve Tarih Bilgisi
+                  if (sourceName != null || publishedAt != null)
+                    Text(
+                      '${sourceName ?? 'Kaynak Yok'} • ${_formatPublishedAt(publishedAt)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        // ignore: deprecated_member_use
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+
+                  const SizedBox(height: 12),
+                  
+                  // Açıklama
+                  if (description != null && description!.isNotEmpty)
+                    Text(
+                      description!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

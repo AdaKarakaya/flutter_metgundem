@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_application_1/services/firestore_service.dart';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,41 +16,48 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   Future<void> _signInWithGoogle() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-    });
+  if (!mounted) return;
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      debugPrint('Firebase Auth ile giriş yaparken bir hata oluştu: $e');
-    } catch (e) {
-      debugPrint('Google Sign-In sırasında bir hata oluştu: $e');
-    } finally {
+  try {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
+      return;
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // Oturum açma işlemi burada gerçekleşiyor.
+    await FirebaseAuth.instance.signInWithCredential(credential);
+
+    // Yeni kullanıcı için Firestore'da doküman oluşturma işlemi
+    // Bu kod satırını buraya eklemelisin:
+    final firestoreService = FirestoreService();
+    await firestoreService.createUserDocument();
+
+  } on FirebaseAuthException catch (e) {
+    debugPrint('Firebase Auth ile giriş yaparken bir hata oluştu: $e');
+  } catch (e) {
+    debugPrint('Google Sign-In sırasında bir hata oluştu: $e');
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
