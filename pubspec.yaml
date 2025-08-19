@@ -41,6 +41,7 @@ dependencies:
   marquee: ^2.3.0
   flutter_riverpod: ^2.6.1
   flutter_dotenv: ^5.2.1
+  fl_chart: 0.68.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -51,6 +52,7 @@ dependencies:
   firebase_auth: ^6.0.1
   google_sign_in: ^6.1.6
   share_plus: ^11.1.0
+  flutter_staggered_animations: ^1.1.1
 
 dev_dependencies:
   flutter_test:
@@ -88,6 +90,7 @@ flutter:
     - assets/images/google_logo.png
     - assets/images/placeholder.png
     - .env
+    - assets/data/mock_rates.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

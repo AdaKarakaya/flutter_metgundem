@@ -1,0 +1,32 @@
+[
+  {
+    "symbol": "USD",
+    "name": "ABD Doları",
+    "value": 32.54,
+    "change": 0.15
+  },
+  {
+    "symbol": "EUR",
+    "name": "Euro",
+    "value": 35.89,
+    "change": -0.05
+  },
+  {
+    "symbol": "BTC",
+    "name": "Bitcoin",
+    "value": 68500.23,
+    "change": 1.2
+  },
+  {
+    "symbol": "ETH",
+    "name": "Ethereum",
+    "value": 4120.75,
+    "change": -0.5
+  },
+  {
+    "symbol": "TRY",
+    "name": "Türk Lirası",
+    "value": 1.0,
+    "change": 0.0
+  }
+]

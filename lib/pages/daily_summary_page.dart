@@ -113,6 +113,7 @@ class _DailySummaryPageState extends State<DailySummaryPage> {
                 ),
               ),
               child: Center(
+                child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -127,6 +128,7 @@ class _DailySummaryPageState extends State<DailySummaryPage> {
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
             ),
