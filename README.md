@@ -1,16 +1,20 @@
-# flutter_application_1
+# [MetGündem]
 
-A new Flutter project.
+### Haber Okuma Alışkanlıklarınızı Keşfedin
 
-## Getting Started
+## Hakkında
 
-This project is a starting point for a Flutter application.
+Bu proje, kullanıcıların haber okuma istatistiklerini takip eden ve kişisel bir profil sunan bir Flutter mobil uygulamasıdır.
 
-A few resources to get you started if this is your first Flutter project:
+## Özellikler
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+-   Firebase ile kullanıcı girişi ve veritabanı işlemleri.
+-   Okunan haber sayısını ve favori kategori gibi istatistikleri hesaplama.
+-   Kullanıcının en aktif olduğu günü belirleme.
+-   Basit ve modern kullanıcı arayüzü.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Teknolojiler
+
+-   Flutter
+-   Firebase (Auth & Firestore)
+-   Riverpod
