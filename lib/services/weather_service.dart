@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_application_1/env/env.dart';
 
 class WeatherService {
-  final String _apiKey = dotenv.env['OPENWEATHER_API_KEY'] ?? '';
+  final String _apiKey = Env.openweatherApiKey; // Değişiklik burada
   final String _baseUrl = 'https://api.openweathermap.org/data/2.5/weather';
   final String _forecastUrl = 'https://api.openweathermap.org/data/2.5/forecast';
 

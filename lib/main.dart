@@ -8,58 +8,56 @@ import 'dart:io';
 import 'package:flutter_application_1/utils/http_override.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/providers/theme_provider.dart';
-import 'package:flutter_application_1/services/firestore_service.dart'; // Bu satırı ekledik
+import 'package:flutter_application_1/services/firestore_service.dart';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // flutter_dotenv paketini ekle
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform; // Platform tespiti için gerekli
+// envied paketinden oluşturulan Env sınıfını import edin
+import 'package:flutter_application_1/env/env.dart'; 
+
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
-
-  // .env dosyasını yükle
-  await dotenv.load(fileName: ".env");
 
   // Platforma göre doğru FirebaseOptions'ı seç
   FirebaseOptions? options;
 
   if (kIsWeb) {
     options = FirebaseOptions(
-      apiKey: dotenv.env['WEB_API_KEY']!,
-      appId: dotenv.env['WEB_APP_ID']!,
-      messagingSenderId: dotenv.env['WEB_MESSAGING_SENDER_ID']!,
-      projectId: dotenv.env['WEB_PROJECT_ID']!,
-      authDomain: dotenv.env['WEB_AUTH_DOMAIN'],
-      storageBucket: dotenv.env['WEB_STORAGE_BUCKET'],
-      measurementId: dotenv.env['WEB_MEASUREMENT_ID'],
+      apiKey: Env.webApiKey,
+      appId: Env.webAppId,
+      messagingSenderId: Env.webMessagingSenderId,
+      projectId: Env.webProjectId,
+      authDomain: Env.webAuthDomain,
+      storageBucket: Env.webStorageBucket,
+      measurementId: Env.webMeasurementId,
     );
   } else if (defaultTargetPlatform == TargetPlatform.android) {
     options = FirebaseOptions(
-      apiKey: dotenv.env['ANDROID_API_KEY']!,
-      appId: dotenv.env['ANDROID_APP_ID']!,
-      messagingSenderId: dotenv.env['ANDROID_MESSAGING_SENDER_ID']!,
-      projectId: dotenv.env['ANDROID_PROJECT_ID']!,
-      storageBucket: dotenv.env['ANDROID_STORAGE_BUCKET'],
+      apiKey: Env.androidApiKey,
+      appId: Env.androidAppId,
+      messagingSenderId: Env.androidMessagingSenderId,
+      projectId: Env.androidProjectId,
+      storageBucket: Env.androidStorageBucket,
     );
   } else if (defaultTargetPlatform == TargetPlatform.iOS) {
     options = FirebaseOptions(
-      apiKey: dotenv.env['IOS_API_KEY']!,
-      appId: dotenv.env['IOS_APP_ID']!,
-      messagingSenderId: dotenv.env['IOS_MESSAGING_SENDER_ID']!,
-      projectId: dotenv.env['IOS_PROJECT_ID']!,
-      storageBucket: dotenv.env['IOS_STORAGE_BUCKET'],
-      iosBundleId: dotenv.env['IOS_BUNDLE_ID'],
-      // Android client id sadece iOS için gerekli olabilir.
+      apiKey: Env.iosApiKey,
+      appId: Env.iosAppId,
+      messagingSenderId: Env.iosMessagingSenderId,
+      projectId: Env.iosProjectId,
+      storageBucket: Env.iosStorageBucket,
+      iosBundleId: Env.iosBundleId,
     );
   } else if (defaultTargetPlatform == TargetPlatform.macOS) {
     options = FirebaseOptions(
-      apiKey: dotenv.env['MACOS_API_KEY']!,
-      appId: dotenv.env['MACOS_APP_ID']!,
-      messagingSenderId: dotenv.env['MACOS_MESSAGING_SENDER_ID']!,
-      projectId: dotenv.env['MACOS_PROJECT_ID']!,
-      storageBucket: dotenv.env['MACOS_STORAGE_BUCKET'],
-      androidClientId: dotenv.env['MACOS_ANDROID_CLIENT_ID'],
-      iosBundleId: dotenv.env['MACOS_BUNDLE_ID'],
+      apiKey: Env.macosApiKey,
+      appId: Env.macosAppId,
+      messagingSenderId: Env.macosMessagingSenderId,
+      projectId: Env.macosProjectId,
+      storageBucket: Env.macosStorageBucket,
+      androidClientId: Env.macosAndroidClientId,
+      iosBundleId: Env.macosBundleId,
     );
   }
 
