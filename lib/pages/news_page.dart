@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/pages/football_page.dart';
 import 'package:flutter_application_1/pages/saved_news_page.dart';
 import 'package:flutter_application_1/pages/weather_page.dart';
 import 'package:flutter_application_1/widgets/custom_app_bar.dart';
@@ -10,20 +11,18 @@ import 'package:shimmer/shimmer.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/pages/news_detail_page.dart';
 import 'package:marquee/marquee.dart';
-import 'package:flutter_application_1/pages/daily_summary_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/providers/news_provider.dart';
 import 'package:flutter_application_1/providers/auth_provider.dart';
 import 'package:flutter_application_1/providers/time_provider.dart';
 import 'package:flutter_application_1/view_models/news_view_model.dart';
-import 'package:flutter_application_1/pages/exchange_page.dart'; // Yeni eklenen sayfa
+import 'package:flutter_application_1/pages/exchange_page.dart';
 import 'package:flutter_application_1/pages/user_profile_page.dart';
 import 'package:flutter_application_1/services/firestore_service.dart';
+import 'package:flutter_application_1/pages/daily_summary_page.dart';
 
-// _selectedCategory durumu için bir StateProvider tanımlayalım
 final selectedCategoryProvider = StateProvider<String>((ref) => 'Gündem');
 
-// Kategori listesini global olarak tanımlıyoruz
 const List<String> newsCategories = [
   'Gündem',
   'Teknoloji',
@@ -32,8 +31,56 @@ const List<String> newsCategories = [
   'Sağlık'
 ];
 
-class NewsPage extends ConsumerWidget {
+class NewsPage extends ConsumerStatefulWidget {
   const NewsPage({super.key});
+
+  @override
+  ConsumerState<NewsPage> createState() => _NewsPageState();
+}
+
+class _NewsPageState extends ConsumerState<NewsPage> with TickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<BorderRadius?> _borderRadiusAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.8).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 1.0, end: 0.5).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+
+    _borderRadiusAnimation = BorderRadiusTween(
+      begin: BorderRadius.circular(0.0),
+      end: BorderRadius.circular(24.0),
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void onDrawerStateChanged(bool isOpened) {
+    if (isOpened) {
+      _animationController.forward();
+    } else {
+      _animationController.reverse();
+    }
+  }
 
   void _openAboutPage(BuildContext context) {
     Navigator.push(
@@ -45,9 +92,6 @@ class NewsPage extends ConsumerWidget {
   void _openNewsDetailPage(BuildContext context, dynamic newsItem) async {
     print('NewsPage: _openNewsDetailPage fonksiyonu çağrıldı.');
     final firestoreService = FirestoreService();
-
-    // SORUN ÇÖZÜMÜ: updateReadCount() yerine, haberin kategorisini de gönderen
-    // yeni updateReadStats() fonksiyonunu çağırdık.
     await firestoreService.updateReadStats(newsItem['category'] ?? 'Genel');
 
     Navigator.push(
@@ -115,145 +159,155 @@ class NewsPage extends ConsumerWidget {
   Widget _buildDrawer(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(userNameProvider);
     final authService = ref.read(authServiceProvider);
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF281E57),
-                  Color(0xFFEE395F),
-                  Color(0xFFF56A2D),
+      // Çekmecenin içindeki içeriği ClipPath ile şekillendiriyoruz
+      child: ClipPath(
+
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF281E57),
+                    Color(0xFFEE395F),
+                    Color(0xFFF56A2D),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Image.asset('assets/images/logo.png', height: 60),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Merhaba, $userName',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                stops: [0.0, 0.5, 1.0],
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Image.asset('assets/images/logo.png', height: 60),
-                const SizedBox(height: 8),
-                Text(
-                  'Merhaba, $userName',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Profilim'),
+              selected: currentRoute == '/user-profile',
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const UserProfilePage()),
+                );
+              },
             ),
-          ),
-          ListTile(
-            leading: Icon(Icons.home, color: Theme.of(context).textTheme.bodyLarge?.color),
-            title: Text('Ana Sayfa', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Profilim'),
-            onTap: () {
-              Navigator.of(context).pop(); // Menüyü kapat
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const UserProfilePage()),
-              );
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.show_chart, color: Theme.of(context).textTheme.bodyLarge?.color),
-            title: Text('Kurlar ve Kriptolar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ExchangePage()),
-              );
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.settings, color: Theme.of(context).textTheme.bodyLarge?.color),
-            title: Text('Ayarlar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-            onTap: () {
-              // Menüyü kapat
-              Navigator.pop(context);
-
-              // Kullanıcı verilerini Firebase'den alın
-              final user = FirebaseAuth.instance.currentUser;
-
-              // Doğru parametrelerle SettingsPage'e yönlendirin
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingsPage(
-                    userName: user?.displayName ?? 'Misafir Kullanıcı',
-                    photoUrl: user?.photoURL,
+            ListTile(
+              leading: Icon(Icons.show_chart, color: Theme.of(context).textTheme.bodyLarge?.color),
+              title: Text('Kurlar ve Kriptolar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+              selected: currentRoute == '/exchange',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ExchangePage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.settings, color: Theme.of(context).textTheme.bodyLarge?.color),
+              title: Text('Ayarlar', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+              selected: currentRoute == '/settings',
+              onTap: () {
+                Navigator.pop(context);
+                final user = FirebaseAuth.instance.currentUser;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SettingsPage(
+                      userName: user?.displayName ?? 'Misafir Kullanıcı',
+                      photoUrl: user?.photoURL,
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.cloud, color: Theme.of(context).colorScheme.onSurface),
-            title: Text('Hava Durumu', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-            onTap: () {
-              Navigator.of(context).pop(); // Menüyü kapat
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WeatherPage()),
-              );
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.info_outline, color: Theme.of(context).textTheme.bodyLarge?.color),
-            title: Text('Hakkımızda', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-            onTap: () {
-              Navigator.pop(context);
-              _openAboutPage(context);
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.bookmark, color: Theme.of(context).textTheme.bodyLarge?.color),
-            title: Text('Kaydedilen Haberler', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SavedNewsPage()),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: Icon(Icons.logout, color: Theme.of(context).textTheme.bodyLarge?.color),
-            title: Text('Çıkış Yap', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-            onTap: () async {
-              Navigator.pop(context);
-              await authService.signOut();
-            },
-          ),
-        ],
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.cloud, color: Theme.of(context).colorScheme.onSurface),
+              title: Text('Hava Durumu', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              selected: currentRoute == '/weather',
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WeatherPage()),
+                );
+              },
+            ),
+            ListTile(
+  leading: const Icon(Icons.sports_soccer),
+  title: const Text('Süper Lig'),
+  onTap: () {
+    Navigator.of(context).pop();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const FootballPage()),
+    );
+  },
+),
+            ListTile(
+              leading: Icon(Icons.info_outline, color: Theme.of(context).textTheme.bodyLarge?.color),
+              title: Text('Hakkımızda', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+              selected: currentRoute == '/about',
+              onTap: () {
+                Navigator.pop(context);
+                _openAboutPage(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.bookmark, color: Theme.of(context).textTheme.bodyLarge?.color),
+              title: Text('Kaydedilen Haberler', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+              selected: currentRoute == '/saved-news',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SavedNewsPage()),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: Icon(Icons.logout, color: Theme.of(context).textTheme.bodyLarge?.color),
+              title: Text('Çıkış Yap', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+              onTap: () async {
+                Navigator.pop(context);
+                await authService.signOut();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget _buildBodyContent(BuildContext context, WidgetRef ref) {
     final newsViewModel = ref.watch(newsViewModelProvider);
     final asyncNewsData = ref.watch(newsProvider);
     final asyncFeaturedNewsData = ref.watch(featuredNewsProvider);
     final selectedCategory = ref.watch(selectedCategoryProvider);
-    final userName = ref.watch(userNameProvider);
+    ref.watch(userNameProvider);
     final currentTime = ref.watch(currentTimeProvider);
 
-    final displayTime = currentTime.when(
+    currentTime.when(
       data: (time) => time,
       loading: () => '...',
       error: (_, __) => '...',
@@ -262,28 +316,8 @@ class NewsPage extends ConsumerWidget {
     String dailySummaryText = 'Günün özeti yükleniyor...';
 
     return asyncNewsData.when(
-      loading: () => Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: CustomAppBar(
-          onCategorySelected: (category) {},
-          userName: userName,
-          currentTime: displayTime,
-          categories: newsCategories,
-          selectedCategory: selectedCategory,
-        ),
-        body: _buildShimmerEffect(context),
-      ),
-      error: (error, stackTrace) => Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: CustomAppBar(
-          onCategorySelected: (category) {},
-          userName: userName,
-          currentTime: displayTime,
-          categories: newsCategories,
-          selectedCategory: selectedCategory,
-        ),
-        body: Center(child: Text('Hata oluştu: $error')),
-      ),
+      loading: () => _buildShimmerEffect(context),
+      error: (error, stackTrace) => Center(child: Text('Hata oluştu: $error')),
       data: (newsItems) {
         final featuredNewsItems = asyncFeaturedNewsData.asData?.value ?? [];
 
@@ -305,160 +339,196 @@ class NewsPage extends ConsumerWidget {
           dailySummaryText = fullSummary;
         }
 
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: CustomAppBar(
-            onCategorySelected: (category) {
-              ref.read(selectedCategoryProvider.notifier).state = category;
-              ref.read(newsProvider.notifier).filterNewsByCategory(category);
-            },
-            userName: userName,
-            currentTime: displayTime,
-            categories: newsCategories,
-            selectedCategory: selectedCategory,
-          ),
-          drawer: _buildDrawer(context, ref),
-          body: RefreshIndicator(
-            onRefresh: () {
-              return ref.read(newsProvider.notifier).refreshNews();
-            },
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      if (newsViewModel.isSearching)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: newsViewModel.searchController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Haberlerde Ara...',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Theme.of(context).cardColor,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    hintStyle: TextStyle(
-                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
-                                    ),
-                                  ),
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                  onSubmitted: (query) {
-                                    ref.read(newsProvider.notifier).filterNewsByQuery(query);
-                                  },
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close),
-                                onPressed: () {
-                                  newsViewModel.toggleSearch();
-                                  ref.read(newsProvider.notifier).filterNewsByCategory(selectedCategory);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (featuredNewsItems.isNotEmpty)
-                        FeaturedNewsPager(newsItems: featuredNewsItems),
-                      const SizedBox(height: 16),
+        return RefreshIndicator(
+          onRefresh: () {
+            return ref.read(newsProvider.notifier).refreshNews();
+          },
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    if (newsViewModel.isSearching)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                         child: Row(
                           children: [
                             Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DailySummaryPage(
-                                        title: 'Günün Özeti',
-                                        summaryText: dailySummaryText,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Card(
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24.0),
+                              child: TextField(
+                                controller: newsViewModel.searchController,
+                                decoration: InputDecoration(
+                                  hintText: 'Haberlerde Ara...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                                    child: SizedBox(
-                                      height: 20,
-                                      child: Marquee(
-                                        text: dailySummaryText,
-                                        style: Theme.of(context).textTheme.bodyMedium,
-                                        scrollAxis: Axis.horizontal,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        blankSpace: 20.0,
-                                        velocity: 50.0,
-                                        pauseAfterRound: const Duration(seconds: 1),
-                                        startPadding: 10.0,
-                                        showFadingOnlyWhenScrolling: true,
-                                        fadingEdgeStartFraction: 0.1,
-                                        fadingEdgeEndFraction: 0.1,
-                                      ),
-                                    ),
+                                  filled: true,
+                                  fillColor: Theme.of(context).cardColor,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  hintStyle: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
                                   ),
                                 ),
+                                style: Theme.of(context).textTheme.bodyMedium,
+                                onSubmitted: (query) {
+                                  ref.read(newsProvider.notifier).filterNewsByQuery(query);
+                                },
                               ),
                             ),
-                            const SizedBox(width: 8),
                             IconButton(
-                              icon: const Icon(Icons.search),
-                              onPressed: newsViewModel.toggleSearch,
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                newsViewModel.toggleSearch();
+                                ref.read(newsProvider.notifier).filterNewsByCategory(selectedCategory);
+                              },
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-                if (newsItems.isEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(
-                        child: Text(
-                          'Haber bulunamadı.',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
+                    if (featuredNewsItems.isNotEmpty)
+                      FeaturedNewsPager(newsItems: featuredNewsItems),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DailySummaryPage(
+                                      title: 'Günün Özeti',
+                                      summaryText: dailySummaryText,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24.0),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                                  child: SizedBox(
+                                    height: 20,
+                                    child: Marquee(
+                                      text: dailySummaryText,
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                      scrollAxis: Axis.horizontal,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      blankSpace: 20.0,
+                                      velocity: 50.0,
+                                      pauseAfterRound: const Duration(seconds: 1),
+                                      startPadding: 10.0,
+                                      showFadingOnlyWhenScrolling: true,
+                                      fadingEdgeStartFraction: 0.1,
+                                      fadingEdgeEndFraction: 0.1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.search),
+                            onPressed: newsViewModel.toggleSearch,
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                        final item = newsItems[index];
-                        return NewsCard(
-                          title: item['title'] ?? 'Başlık Yok',
-                          description: item['description'],
-                          imageUrl: item['urlToImage'],
-                          content: item['content'] ?? 'İçerik Yok',
-                          sourceUrl: item['url'],
-                          sourceName: item['source']['name'],
-                          publishedAt: item['publishedAt'],
-                          onTap: () => _openNewsDetailPage(context, item),
-                        );
-                      },
-                      childCount: newsItems.length,
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              if (newsItems.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'Haber bulunamadı.',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
                     ),
                   ),
-              ],
-            ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                      final item = newsItems[index];
+                      return NewsCard(
+                        title: item['title'] ?? 'Başlık Yok',
+                        description: item['description'],
+                        imageUrl: item['urlToImage'],
+                        content: item['content'] ?? 'İçerik Yok',
+                        sourceUrl: item['url'],
+                        sourceName: item['source']['name'],
+                        publishedAt: item['publishedAt'],
+                        onTap: () => _openNewsDetailPage(context, item),
+                      );
+                    },
+                    childCount: newsItems.length,
+                  ),
+                ),
+            ],
           ),
         );
       },
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: _buildDrawer(context, ref),
+      onDrawerChanged: onDrawerStateChanged,
+      drawerEnableOpenDragGesture: true,
+      body: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Opacity(
+              opacity: _fadeAnimation.value,
+              child: ClipRRect(
+                borderRadius: _borderRadiusAnimation.value ?? BorderRadius.zero,
+                child: AbsorbPointer(
+                  absorbing: _animationController.status == AnimationStatus.forward,
+                  child: Column(
+                    children: [
+                      CustomAppBar(
+                        onCategorySelected: (category) {
+                          ref.read(selectedCategoryProvider.notifier).state = category;
+                          ref.read(newsProvider.notifier).filterNewsByCategory(category);
+                        },
+                        userName: ref.watch(userNameProvider),
+                        currentTime: ref.watch(currentTimeProvider).when(
+                              data: (time) => time,
+                              loading: () => '...',
+                              error: (_, __) => '...',
+                            ),
+                        categories: newsCategories,
+                        selectedCategory: ref.watch(selectedCategoryProvider),
+                      ),
+                      Expanded(
+                        child: _buildBodyContent(context, ref),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
+
+
